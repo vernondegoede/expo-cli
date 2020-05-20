@@ -15,6 +15,7 @@ import {
 import slug from 'slugify';
 import { getBareExtensions, getManagedExtensions } from '@expo/config/paths';
 import {
+  AssetWithFileHashes,
   BundleOutput,
   MetroDevServerOptions,
   bundleAsync,
@@ -103,19 +104,8 @@ let _cachedSignedManifest: CachedSignedManifest = {
   signedManifest: null,
 };
 
-type Asset =
-  | { fileHashes: string[]; files: string[]; hash: string }
-  | {
-      __packager_asset: true;
-      fileHashes: string[];
-      files: string[];
-      fileSystemLocation: string;
-      hash: string;
-      httpServerLocation: string;
-      name: string;
-      scales: number[];
-      type: string;
-    };
+type ManifestAsset = { fileHashes: string[]; files: string[]; hash: string };
+type Asset = ManifestAsset | AssetWithFileHashes;
 
 type ManifestResolutionError = Error & {
   localAssetPath?: string;
@@ -983,6 +973,7 @@ async function _collectAssets(
     },
     true
   );
+
   return [...bundles.ios.assets, ...bundles.android.assets, ...manifestAssets];
 }
 
