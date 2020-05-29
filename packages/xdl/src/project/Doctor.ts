@@ -10,7 +10,6 @@ import Schemer, { SchemerError, ValidationError } from '@expo/schemer';
 import spawnAsync from '@expo/spawn-async';
 import fs from 'fs-extra';
 import getenv from 'getenv';
-import _ from 'lodash';
 import path from 'path';
 import semver from 'semver';
 
@@ -32,7 +31,7 @@ const WARN_NPM_VERSION_RANGES = ['>= 5.0.0 < 5.7.0'];
 const BAD_NPM_VERSION_RANGES = ['>= 5.0.0 <= 5.0.3'];
 
 function _isNpmVersionWithinRanges(npmVersion: string, ranges: string[]) {
-  return _.some(ranges, range => semver.satisfies(npmVersion, range));
+  return ranges.some(range => semver.satisfies(npmVersion, range));
 }
 
 async function _checkNpmVersionAsync(projectRoot: string) {
@@ -45,7 +44,7 @@ async function _checkNpmVersionAsync(projectRoot: string) {
     } catch (e) {}
 
     let npmVersionResponse = await spawnAsync('npm', ['--version']);
-    let npmVersion = _.trim(npmVersionResponse.stdout);
+    let npmVersion = npmVersionResponse.stdout.trim();
 
     if (
       semver.lt(npmVersion, MIN_NPM_VERSION) ||
@@ -115,7 +114,6 @@ export async function validateWithSchema(
   exp: any,
   schema: any,
   configName: string,
-  sdkVersion: string,
   validateAssets: boolean
 ): Promise<{ schemaErrorMessage: string | undefined; assetsErrorMessage: string | undefined }> {
   let schemaErrorMessage;
@@ -129,7 +127,7 @@ export async function validateWithSchema(
     if (e instanceof SchemerError) {
       schemaErrorMessage = `Error: Problem${
         e.errors.length > 1 ? 's' : ''
-      } validating fields in ${configName}. See https://docs.expo.io/versions/v${sdkVersion}/workflow/configuration/`;
+      } validating fields in ${configName}. See https://docs.expo.io/workflow/configuration/`;
       schemaErrorMessage += e.errors.map(formatValidationError).join('');
     }
   }
@@ -208,7 +206,7 @@ async function _validateExpJsonAsync(
     ProjectUtils.logError(
       projectRoot,
       'expo',
-      `Error: Invalid sdkVersion. Valid options are ${_.keys(sdkVersions).join(', ')}`,
+      `Error: Invalid sdkVersion. Valid options are ${Object.keys(sdkVersions).join(', ')}`,
       'doctor-invalid-sdk-version'
     );
     return ERROR;
@@ -224,7 +222,6 @@ async function _validateExpJsonAsync(
         exp,
         schema,
         configName,
-        sdkVersion,
         allowNetwork
       );
 
@@ -391,7 +388,7 @@ async function _validateNodeModulesAsync(projectRoot: string): Promise<number> {
     return FATAL;
   }
 
-  // Check to make sure react native is installed
+  // Check to make sure react-native is installed
   try {
     resolveModule('react-native/local-cli/cli.js', projectRoot, exp);
     ProjectUtils.clearNotification(projectRoot, 'doctor-react-native-not-installed');
@@ -400,7 +397,7 @@ async function _validateNodeModulesAsync(projectRoot: string): Promise<number> {
       ProjectUtils.logError(
         projectRoot,
         'expo',
-        `Error: React Native is not installed. Please run \`npm install\` in your project directory.`,
+        `Error: react-native is not installed. Please run \`npm install\` or \`yarn\` in your project directory.`,
         'doctor-react-native-not-installed'
       );
       return FATAL;

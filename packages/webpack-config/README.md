@@ -6,7 +6,7 @@
 <!-- Header -->
 
 <p align="center">
-    <b>Webpack config that's optimized for running React Native web projects</b>
+    <b>Webpack config that's optimized for running universal React and react-native-web projects</b>
     <br/>
     <br/>
     <a aria-label="Circle CI" href="https://circleci.com/gh/expo/expo-cli/tree/master">
@@ -349,6 +349,10 @@ module.exports = async function(env, argv) {
 
 [workbox]: https://developers.google.com/web/tools/workbox
 
+## Environment Variables
+
+- `EXPO_WEBPACK_DEFINE_ENVIRONMENT_AS_KEYS`: Should the define plugin explicitly set environment variables like `process.env.FOO` instead of creating an object like `proces.env: { FOO }`. Defaults to `false`. Next.js uses this to prevent overwriting injected environment variables.
+
 ## Exports
 
 ### addons
@@ -385,7 +389,7 @@ import { withOptimizations } from '@expo/webpack-config/addons';
 
 #### `withAlias`
 
-Add aliases for React Native web.
+Apply aliases to a Webpack config.
 
 ```js
 import { withAlias } from '@expo/webpack-config/addons';
@@ -525,7 +529,7 @@ Default CSS loader.
 import /* */ '@expo/webpack-config/plugins';
 ```
 
-Custom versions of Webpack Plugins that are optimized for use with React Native.
+Custom versions of Webpack Plugins that are optimized for use with native React runtimes.
 
 #### `ExpoDefinePlugin`
 
@@ -583,5 +587,5 @@ The Expo source code is made available under the [MIT license](LICENSE). Some of
     </a>
 </p>
 
-[docs]: https://docs.expo.io/versions/latest/guides/customizing-webpack/
+[docs]: https://docs.expo.io/guides/customizing-webpack/
 [docs-latest]: https://github.com/expo/expo/blob/master/docs/pages/versions/unversioned/guides/customizing-webpack.md

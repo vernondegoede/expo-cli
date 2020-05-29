@@ -1,10 +1,7 @@
-import ora from 'ora';
 import chalk from 'chalk';
 import terminalLink from 'terminal-link';
 import wordwrap from 'wordwrap';
 
-import { every, some } from 'lodash';
-import invariant from 'invariant';
 import { runAction, travelingFastlane } from './fastlane';
 import { nonEmptyInput } from '../validators';
 import log from '../log';
@@ -71,12 +68,12 @@ function _getAppleIdFromParams({ appleId, appleIdPassword }: Options): AppleCred
   const passedAppleIdPassword = appleIdPassword || process.env.EXPO_APPLE_PASSWORD;
 
   // none of the apple id params were set, assume user has no intention of passing it in
-  if (!some([appleId, passedAppleIdPassword])) {
+  if (!appleId && !passedAppleIdPassword) {
     return null;
   }
 
   // partial apple id params were set, assume user has intention of passing it in
-  if (!every([appleId, passedAppleIdPassword])) {
+  if (!(appleId && passedAppleIdPassword)) {
     throw new Error(
       'In order to provide your Apple ID credentials, you must set the --apple-id flag and set the EXPO_APPLE_PASSWORD environment variable.'
     );
@@ -98,7 +95,7 @@ async function _promptForAppleId(): Promise<AppleCredentials> {
     )
   );
 
-  // https://docs.expo.io/versions/latest/distribution/security/#apple-developer-account-credentials
+  // https://docs.expo.io/distribution/security/#apple-developer-account-credentials
   const here = terminalLink('here', 'https://bit.ly/2VtGWhU');
   log(wrap(chalk.bold(`The password is only used to authenticate with Apple and never stored`)));
   log(wrap(chalk.grey(`Learn more ${here}`)));

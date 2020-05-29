@@ -1,7 +1,6 @@
 import spawnAsync from '@expo/spawn-async';
-import { TurtleApi } from '@expo/xdl';
+import { ApiV2 } from '@expo/xdl';
 import delayAsync from 'delay-async';
-import get from 'lodash/get';
 import ora from 'ora';
 
 import log from '../../log';
@@ -9,7 +8,7 @@ import { printTableJsonArray } from '../utils/cli-table';
 import { BuildInfo } from './Builder';
 
 async function waitForBuildEnd(
-  client: TurtleApi,
+  client: ApiV2,
   buildId: string,
   { timeoutSec = 1800, intervalSec = 30 } = {}
 ) {
@@ -22,7 +21,7 @@ async function waitForBuildEnd(
     switch (buildInfo.status) {
       case 'finished':
         spinner.succeed('Build finished.');
-        return get(buildInfo, 'artifacts.buildUrl', '');
+        return buildInfo.artifacts?.buildUrl ?? '';
       case 'in-queue':
         spinner.text = 'Build queued...';
         break;
@@ -75,17 +74,4 @@ function printBuildTable(builds: BuildInfo[]) {
   console.log(buildTable);
 }
 
-function getLogsUrl(buildId: string) {
-  let baseUrl;
-  if (process.env.EXPO_STAGING) {
-    baseUrl = `https://staging.turtle.expo.io`;
-  } else if (process.env.EXPO_LOCAL) {
-    baseUrl = `http://localhost:3006`;
-  } else {
-    baseUrl = `https://turtle.expo.io`;
-  }
-
-  return `${baseUrl}/logs/${buildId}`;
-}
-
-export { waitForBuildEnd, makeProjectTarball, printBuildTable, getLogsUrl };
+export { waitForBuildEnd, makeProjectTarball, printBuildTable };

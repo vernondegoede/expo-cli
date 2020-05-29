@@ -4,7 +4,8 @@ import * as PackageManager from '@expo/package-manager';
 import { Android, Project, Simulator, Versions } from '@expo/xdl';
 import chalk from 'chalk';
 import program, { Command } from 'commander';
-import _ from 'lodash';
+import pickBy from 'lodash/pickBy';
+import difference from 'lodash/difference';
 import semver from 'semver';
 import ora from 'ora';
 import terminalLink from 'terminal-link';
@@ -101,7 +102,7 @@ export function getDependenciesFromBundledNativeModules({
 
   if (!targetSdkVersion) {
     log.warn(
-      `Supported React, React Native, and React DOM versions are unknown because we don't have version information for the target SDK, please update them manually.`
+      `Supported react, react-native, and react-dom versions are unknown because we don't have version information for the target SDK, please update them manually.`
     );
     return result;
   }
@@ -176,7 +177,7 @@ async function makeBreakingChangesToConfigAsync(
             text: chalk.red(
               `Please manually update "androidNavigationBar.visible" according to ${terminalLink(
                 'this documentation',
-                'https://docs.expo.io/versions/latest/workflow/configuration/#androidnavigationbar'
+                'https://docs.expo.io/workflow/configuration/#androidnavigationbar'
               )}`
             ),
           });
@@ -209,7 +210,7 @@ async function maybeBailOnUnsafeFunctionalityAsync(
     const answer = await prompt({
       type: 'confirm',
       name: 'attemptOldUpdate',
-      message: `This command works best on SDK 33 and higher. We can try updating for you, but you will likely need to follow up with the instructions from https://docs.expo.io/versions/latest/workflow/upgrading-expo-sdk-walkthrough/. Continue anyways?`,
+      message: `This command works best on SDK 33 and higher. We can try updating for you, but you will likely need to follow up with the instructions from https://docs.expo.io/workflow/upgrading-expo-sdk-walkthrough/. Continue anyways?`,
     });
 
     if (!answer.attemptOldUpdate) {
@@ -277,8 +278,7 @@ async function shouldUpgradeSimulatorAsync(): Promise<boolean> {
     let answer = await prompt({
       type: 'confirm',
       name: 'upgradeSimulator',
-      message:
-        'You might have to upgrade your iOS simulator. Before you can do that, you have to run the simulator. Do you want to upgrade it now?',
+      message: 'Would you like to upgrade the Expo app in the iOS simulator?',
       default: false,
     });
 
@@ -307,15 +307,14 @@ async function shouldUpgradeEmulatorAsync(): Promise<boolean> {
   // Check if we can, and probably should, upgrade the android client
   if (Android.isPlatformSupported()) {
     if (program.nonInteractive) {
-      log.warn(`Skipping attempt to upgrade the client app on the Android emulator.`);
+      log.warn(`Skipping attempt to upgrade the Expo app on the Android emulator.`);
       return false;
     }
 
     const answer = await prompt({
       type: 'confirm',
       name: 'upgradeAndroid',
-      message:
-        'You might have to upgrade your Android client. Before you can do that, you have to run the emulator, or plug a device in. Do you want to upgrade it now?',
+      message: 'Would you like to upgrade the Expo app in the Android emulator?',
       default: false,
     });
 
@@ -496,11 +495,11 @@ export async function upgradeAsync(
   let updates = await getUpdatedDependenciesAsync(projectRoot, workflow, targetSdkVersion);
 
   // Split updated packages by dependencies and devDependencies
-  let devDependencies = _.pickBy(updates, (_version, name) => _.has(pkg.devDependencies, name));
+  let devDependencies = pickBy(updates, (_version, name) => pkg.devDependencies?.[name]);
   let devDependenciesAsStringArray = Object.keys(devDependencies).map(
     name => `${name}@${updates[name]}`
   );
-  let dependencies = _.pickBy(updates, (_version, name) => _.has(pkg.dependencies, name));
+  let dependencies = pickBy(updates, (_version, name) => pkg.dependencies?.[name]);
   let dependenciesAsStringArray = Object.keys(dependencies).map(name => `${name}@${updates[name]}`);
 
   // Install dev dependencies
@@ -559,7 +558,7 @@ export async function upgradeAsync(
 
   // List packages that were not updated
   let allDependencies = { ...pkg.dependencies, ...pkg.devDependencies };
-  let untouchedDependencies = _.difference(Object.keys(allDependencies), [
+  let untouchedDependencies = difference(Object.keys(allDependencies), [
     ...Object.keys(updates),
     'expo',
   ]);
@@ -600,7 +599,7 @@ export async function upgradeAsync(
     );
   }
 
-  let skippedSdkVersions = _.pickBy(sdkVersions, (_data, sdkVersionString) => {
+  let skippedSdkVersions = pickBy(sdkVersions, (_data, sdkVersionString) => {
     return (
       semver.lt(sdkVersionString, targetSdkVersionString) &&
       semver.gt(sdkVersionString, currentSdkVersionString)
@@ -669,7 +668,7 @@ async function maybeCleanNpmStateAsync(packageManager: any) {
   }
 }
 
-export default function(program: Command) {
+export default function (program: Command) {
   program
     .command('upgrade [targetSdkVersion]')
     .alias('update')

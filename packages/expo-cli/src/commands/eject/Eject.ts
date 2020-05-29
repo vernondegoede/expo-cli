@@ -41,7 +41,7 @@ const EXPO_APP_ENTRY = 'node_modules/expo/AppEntry.js';
 /**
  * Entry point into the eject process, delegates to other helpers to perform various steps.
  */
-export async function ejectAsync(projectRoot: string, options: EjectAsyncOptions) {
+export async function ejectAsync(projectRoot: string, options?: EjectAsyncOptions): Promise<void> {
   if (await maybeBailOnGitStatusAsync()) return;
 
   await createNativeProjectsFromTemplateAsync(projectRoot);
@@ -280,8 +280,9 @@ async function createNativeProjectsFromTemplateAsync(projectRoot: string): Promi
   let creatingNativeProjectStep = logNewSection(
     'Creating native project directories (./ios and ./android) and updating .gitignore'
   );
+  let tempDir;
   try {
-    const tempDir = temporary.directory();
+    tempDir = temporary.directory();
     await Exp.extractTemplateAppAsync(templateSpec, tempDir, appJson.expo);
     fse.copySync(path.join(tempDir, 'ios'), path.join(projectRoot, 'ios'));
     fse.copySync(path.join(tempDir, 'android'), path.join(projectRoot, 'android'));
@@ -310,6 +311,41 @@ async function createNativeProjectsFromTemplateAsync(projectRoot: string): Promi
   }
 
   /**
+   * Add metro config, or warn if metro config already exists. The developer will need to add the
+   * hashAssetFiles plugin manually.
+   */
+
+  let updatingMetroConfigStep = logNewSection('Adding Metro bundler configuration');
+  try {
+    if (
+      fse.existsSync(path.join(projectRoot, 'metro.config.js')) ||
+      fse.existsSync(path.join(projectRoot, 'metro.config.json')) ||
+      pkg.metro ||
+      fse.existsSync(path.join(projectRoot, 'rn-cli.config.js'))
+    ) {
+      throw new Error('Existing Metro configuration found; not overwriting.');
+    }
+
+    fse.copySync(path.join(tempDir, 'metro.config.js'), path.join(projectRoot, 'metro.config.js'));
+    updatingMetroConfigStep.succeed('Added Metro bundler configuration.');
+  } catch (e) {
+    updatingMetroConfigStep.stopAndPersist({
+      symbol: '⚠️ ',
+      text: chalk.red('Metro bundler configuration not applied:'),
+    });
+    log.nested(`- ${e.message}`);
+    log.nested(
+      `- You will need to add the ${chalk.bold(
+        'hashAssetFiles'
+      )} plugin to your Metro configuration. ${terminalLink(
+        'Example.',
+        'https://github.com/expo/expo/blob/master/packages/expo-updates/README.md#metroconfigjs'
+      )}`
+    );
+    log.newLine();
+  }
+
+  /**
    * Update package.json scripts - `npm start` should default to `react-native
    * start` rather than `expo start` after ejecting, for example.
    */
@@ -335,6 +371,8 @@ async function createNativeProjectsFromTemplateAsync(projectRoot: string): Promi
    *   for example RNGH and Reanimated. We should prefer the version that is already being used
    *   in the project for those, but swap the react/react-native/react-native-unimodules versions
    *   with the ones in the template.
+   * - The same applies to expo-updates -- since some native project configuration may depend on the
+   *   version, we should always use the version of expo-updates in the template.
    */
 
   const combinedDependencies: DependenciesMap = createDependenciesMap({
@@ -342,7 +380,12 @@ async function createNativeProjectsFromTemplateAsync(projectRoot: string): Promi
     ...pkg.dependencies,
   });
 
-  for (const dependenciesKey of ['react', 'react-native-unimodules', 'react-native']) {
+  for (const dependenciesKey of [
+    'react',
+    'react-native-unimodules',
+    'react-native',
+    'expo-updates',
+  ]) {
     combinedDependencies[dependenciesKey] = defaultDependencies[dependenciesKey];
   }
   const combinedDevDependencies: DependenciesMap = createDependenciesMap({

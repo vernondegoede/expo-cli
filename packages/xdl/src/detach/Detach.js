@@ -145,7 +145,7 @@ async function _detachAsync(projectRoot, options) {
 
   if (!exp.scheme) {
     logger.info(
-      `You have not specified a custom scheme for deep linking. A default value of ${generatedScheme} will be used. You can change this later by following the instructions in this guide: https://docs.expo.io/versions/latest/workflow/linking/`
+      `You have not specified a custom scheme for deep linking. A default value of ${generatedScheme} will be used. You can change this later by following the instructions in this guide: https://docs.expo.io/workflow/linking/`
     );
     exp.scheme = generatedScheme;
   }
@@ -173,7 +173,7 @@ async function _detachAsync(projectRoot, options) {
     }
     if (!exp.ios.bundleIdentifier) {
       logger.info(
-        `You'll need to specify an iOS bundle identifier. See: https://docs.expo.io/versions/latest/workflow/configuration/#ios`
+        `You'll need to specify an iOS bundle identifier. See: https://docs.expo.io/workflow/configuration/#ios`
       );
       const { iosBundleIdentifier } = await inquirer.prompt([
         {
@@ -197,7 +197,7 @@ async function _detachAsync(projectRoot, options) {
     }
     if (!exp.android.package) {
       logger.info(
-        `You'll need to specify an Android package name. See: https://docs.expo.io/versions/latest/workflow/configuration/#android`
+        `You'll need to specify an Android package name. See: https://docs.expo.io/workflow/configuration/#android`
       );
       const { androidPackage } = await inquirer.prompt([
         {
@@ -237,7 +237,7 @@ async function _detachAsync(projectRoot, options) {
   } else if (process.env.EXPO_VIEW_DIR) {
     // ignore, using test directory
   } else {
-    throw new Error(`Expo's React Native fork does not support this SDK version.`);
+    throw new Error(`Expo's fork of react-native does not support this SDK version.`);
   }
 
   // Add expokitNpmPackage if it is supported. Was added before SDK 29.

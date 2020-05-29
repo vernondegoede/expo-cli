@@ -1,4 +1,5 @@
 import { UrlUtils, Webpack } from '@expo/xdl';
+import { setCustomConfigPath } from '@expo/config';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import BaseBuilder from './BaseBuilder';
@@ -12,7 +13,15 @@ import prompt from '../../prompt';
 
 import { AndroidOptions, IosOptions } from './BaseBuilder.types';
 
-async function maybeBailOnWorkflowWarning(projectDir: string, platform: 'ios' | 'android') {
+async function maybeBailOnWorkflowWarning({
+  projectDir,
+  platform,
+  nonInteractive,
+}: {
+  projectDir: string;
+  platform: 'ios' | 'android';
+  nonInteractive: boolean;
+}) {
   const { workflow } = await ProjectUtils.findProjectRootAsync(projectDir);
   if (workflow === 'managed') {
     return false;
@@ -29,6 +38,11 @@ async function maybeBailOnWorkflowWarning(projectDir: string, platform: 'ios' | 
     }.`
   );
 
+  if (nonInteractive) {
+    log.warn(`Skipping confirmation prompt because non-interactive mode is enabled.`);
+    return false;
+  }
+
   const answer = await prompt({
     type: 'confirm',
     name: 'ignoreWorkflowWarning',
@@ -38,7 +52,7 @@ async function maybeBailOnWorkflowWarning(projectDir: string, platform: 'ios' | 
   return !answer.ignoreWorkflowWarning;
 }
 
-export default function(program: Command) {
+export default function (program: Command) {
   program
     .command('build:ios [project-dir]')
     .alias('bi')
@@ -82,7 +96,13 @@ export default function(program: Command) {
     .asyncActionProjectDir(
       async (projectDir: string, options: IosOptions) => {
         if (!options.skipWorkflowCheck) {
-          if (await maybeBailOnWorkflowWarning(projectDir, 'ios')) {
+          if (
+            await maybeBailOnWorkflowWarning({
+              projectDir,
+              platform: 'ios',
+              nonInteractive: program.nonInteractive,
+            })
+          ) {
             return;
           }
         }
@@ -126,7 +146,13 @@ export default function(program: Command) {
     .asyncActionProjectDir(
       async (projectDir: string, options: AndroidOptions) => {
         if (!options.skipWorkflowCheck) {
-          if (await maybeBailOnWorkflowWarning(projectDir, 'android')) {
+          if (
+            await maybeBailOnWorkflowWarning({
+              projectDir,
+              platform: 'android',
+              nonInteractive: program.nonInteractive,
+            })
+          ) {
             return;
           }
         }

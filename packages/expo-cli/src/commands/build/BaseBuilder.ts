@@ -2,8 +2,6 @@ import { ExpoConfig, getConfig } from '@expo/config';
 import { Project, User, UserManager, Versions } from '@expo/xdl';
 import chalk from 'chalk';
 import delayAsync from 'delay-async';
-import fp from 'lodash/fp';
-import get from 'lodash/get';
 import ora from 'ora';
 import semver from 'semver';
 
@@ -159,7 +157,7 @@ export default class BaseBuilder {
     if (reuseStatus.canReuse) {
       log.warn(`Did you know that Expo provides over-the-air updates?
 Please see the docs (${chalk.underline(
-        'https://docs.expo.io/versions/latest/guides/configuring-ota-updates/'
+        'https://docs.expo.io/guides/configuring-ota-updates/'
       )}) and check if you can use them instead of building your app binaries again.`);
 
       log.warn(
@@ -176,7 +174,6 @@ Please see the docs (${chalk.underline(
     numberOfRemainingPriorityBuilds: number;
     hasUnlimitedPriorityBuilds?: boolean;
   }) {
-    log.raw();
     log('=================');
     log(' Builds Statuses ');
     log('=================\n');
@@ -305,22 +302,18 @@ ${job.id}
     while (true) {
       let res;
       if (process.env.EXPO_LEGACY_API === 'true') {
-        res = await Project.buildAsync(this.projectDir, {
+        res = (await Project.buildAsync(this.projectDir, {
           current: false,
           mode: 'status',
           ...(publicUrl ? { publicUrl } : {}),
-        });
+        })) as Project.BuildStatusResult;
       } else {
         res = await Project.getBuildStatusAsync(this.projectDir, {
           current: false,
           ...(publicUrl ? { publicUrl } : {}),
         });
       }
-      const job = fp.compose(
-        fp.head,
-        fp.filter(job => buildId && (job as any).id === buildId),
-        fp.getOr([], 'jobs')
-      )(res);
+      const job = res.jobs?.filter((job: Project.BuildJobFields) => job.id === buildId)[0];
 
       switch (job.status) {
         case 'finished':
@@ -348,7 +341,7 @@ ${job.id}
   async build(expIds?: Array<string>) {
     const { publicUrl } = this.options;
     const platform = this.platform();
-    const bundleIdentifier = get(this.manifest, 'ios.bundleIdentifier');
+    const bundleIdentifier = this.manifest.ios?.bundleIdentifier;
 
     let result: any;
     if (process.env.EXPO_LEGACY_API === 'true') {

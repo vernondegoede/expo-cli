@@ -1,9 +1,6 @@
 import chalk from 'chalk';
 import dateformat from 'dateformat';
 import fs from 'fs-extra';
-import every from 'lodash/every';
-import get from 'lodash/get';
-import some from 'lodash/some';
 import ora from 'ora';
 import { IosCodeSigning } from '@expo/xdl';
 
@@ -340,12 +337,12 @@ export class CreateOrReuseDistributionCert implements IView {
 }
 
 function getOptionsFromProjectContext(ctx: Context): DistCertOptions | null {
-  const experience = get(ctx, 'manifest.slug');
-  const owner = get(ctx, 'manifest.owner');
+  const experience = ctx.manifest.slug;
+  const owner = ctx.manifest.owner;
   const experienceName = `@${owner || ctx.user.username}/${experience}`;
-  const bundleIdentifier = get(ctx, 'manifest.ios.bundleIdentifier');
+  const bundleIdentifier = ctx.manifest.ios?.bundleIdentifier;
   if (!experience || !bundleIdentifier) {
-    log.error(`slug and ios.bundleIdentifier needs to be defined`);
+    log.error(`slug and ios.bundleIdentifier need to be defined`);
     return null;
   }
 
@@ -483,10 +480,9 @@ function formatDistCert(
       "\n    ❓ Validity of this certificate on Apple's servers is unknown."
     );
   }
-  return `Distribution Certificate (Cert ID: ${distCert.certId ||
-    '-----'}, Serial number: ${serialNumber}, Team ID: ${
-    distCert.teamId
-  })${usedByString}${validityText}`;
+  return `Distribution Certificate (Cert ID: ${
+    distCert.certId || '-----'
+  }, Serial number: ${serialNumber}, Team ID: ${distCert.teamId})${usedByString}${validityText}`;
 }
 
 async function generateDistCert(ctx: Context): Promise<DistCert> {
@@ -506,7 +502,7 @@ async function generateDistCert(ctx: Context): Promise<DistCert> {
           {}
         );
 
-      // https://docs.expo.io/versions/latest/distribution/app-signing/#summary
+      // https://docs.expo.io/distribution/app-signing/#summary
       const here = terminalLink('here', 'https://bit.ly/3cfJJkQ');
       log(
         chalk.grey(`✅  Distribution Certificates can be revoked with no production side effects`)
@@ -656,12 +652,12 @@ export async function getDistCertFromParams(builderOptions: {
   const certPassword = process.env.EXPO_IOS_DIST_P12_PASSWORD;
 
   // none of the distCert params were set, assume user has no intention of passing it in
-  if (!some([distP12Path, certPassword])) {
+  if (!distP12Path && !certPassword) {
     return null;
   }
 
   // partial distCert params were set, assume user has intention of passing it in
-  if (!every([distP12Path, certPassword, teamId])) {
+  if (!(distP12Path && certPassword && teamId)) {
     throw new Error(
       'In order to provide a Distribution Certificate through the CLI parameters, you have to pass --dist-p12-path parameter, --team-id parameter and set EXPO_IOS_DIST_P12_PASSWORD environment variable.'
     );

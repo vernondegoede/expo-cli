@@ -49,10 +49,6 @@ workflows:
           e: puppeteer
           requires:
             - puppeteerEnv
-      - test-webpack-config-e2e-next-js:
-          e: puppeteer
-          requires:
-            - puppeteerEnv
       - test-electron-adapter:
           e: node-10
           requires:
@@ -82,7 +78,7 @@ jobs:
           name: Type Check and Build Packages
           command: yarn build
       - persist_to_workspace:
-          root: "~"
+          root: '~'
           paths:
             - expo-cli
       - save_cache:
@@ -98,7 +94,7 @@ jobs:
     working_directory: ~/expo-cli/packages/dev-tools
     steps:
       - attach_workspace:
-          at: "~"
+          at: '~'
       - run: yarn test
   test-expo-cli:
     parameters:
@@ -108,7 +104,7 @@ jobs:
     working_directory: ~/expo-cli/packages/expo-cli
     steps:
       - attach_workspace:
-          at: "~"
+          at: '~'
       - run: yarn test
   test-webpack-config-e2e:
     parameters:
@@ -118,24 +114,11 @@ jobs:
     working_directory: ~/expo-cli/packages/webpack-config
     steps:
       - attach_workspace:
-          at: "~"
+          at: '~'
       - run:
           name: Install test project dependencies
           command: cd e2e/basic && yarn; cd ../..
       - run: yarn test:e2e
-  test-webpack-config-e2e-next-js:
-    parameters:
-      e:
-        type: executor
-    executor: << parameters.e >>
-    working_directory: ~/expo-cli/packages/webpack-config
-    steps:
-      - attach_workspace:
-          at: "~"
-      - run:
-          name: Install test project dependencies
-          command: cd e2e/nextjs && yarn; cd ../..
-      - run: yarn test:e2e:nextjs
   test-electron-adapter:
     parameters:
       e:
@@ -144,5 +127,5 @@ jobs:
     working_directory: ~/expo-cli/packages/electron-adapter
     steps:
       - attach_workspace:
-          at: "~"
+          at: '~'
       - run: yarn test

@@ -1,11 +1,11 @@
 {
-  "extends": "@expo/babel-preset-cli/tsconfig.base",
+  "extends": "../../tsconfig.base",
   "compilerOptions": {
     "target": "ES2018",
     "module": "CommonJS",
     "lib": ["es2018", "es2020.string"],
     "rootDir": "./src",
-    "outDir": "./bin",
+    "outDir": "./build",
     "esModuleInterop": true
   },
   "include": ["./src"],

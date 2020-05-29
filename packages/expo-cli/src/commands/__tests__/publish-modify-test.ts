@@ -5,68 +5,28 @@ import {
   rollbackPublicationFromChannelAsync,
   setPublishToChannelAsync,
 } from '../utils/PublishUtils';
+import { jester } from '../../credentials/test-fixtures/mocks';
+import { mockExpoXDL } from '../../__tests__/mock-utils';
+import { createTestProject } from '../../__tests__/project-utils';
 
 jest.mock('fs');
 jest.mock('resolve-from');
-jest.mock('ora', () =>
-  jest.fn(() => {
-    return {
-      start: jest.fn(() => {
-        return { stop: jest.fn(), succeed: jest.fn() };
-      }),
-    };
-  })
-);
-jest.mock('@expo/xdl', () => {
-  const user = {
-    kind: 'user',
-    username: 'test-username',
-    nickname: 'test-nickname',
-    userId: 'test-id',
-    picture: 'test-pic',
-    currentConnection: 'Username-Password-Authentication',
-    sessionSecret: 'test-session-secret',
-  };
-  const pkg = jest.requireActual('@expo/xdl');
-  return {
-    ...pkg,
-    UserManager: {
-      ...pkg.UserManager,
-      ensureLoggedInAsync: jest.fn(() => user),
-      getCurrentUserAsync: jest.fn(() => user),
-    },
-    ApiV2: {
-      ...pkg.clientForUser,
-      clientForUser: jest.fn(),
-    },
-  };
+
+mockExpoXDL({
+  UserManager: {
+    ensureLoggedInAsync: jest.fn(() => jester),
+    getCurrentUserAsync: jest.fn(() => jester),
+  },
+  ApiV2: {
+    clientForUser: jest.fn(),
+  },
 });
 
 describe('publish details', () => {
-  const projectRoot = '/test-project';
-  const packageJson = JSON.stringify(
-    {
-      name: 'testing123',
-      version: '0.1.0',
-      description: 'fake description',
-      main: 'index.js',
-    },
-    null,
-    2
-  );
-  const appJson = JSON.stringify({
-    name: 'testing 123',
-    version: '0.1.0',
-    slug: 'testing-123',
-    sdkVersion: '33.0.0',
-    owner: 'test-user',
-  });
+  const testProject = createTestProject(jester);
 
   beforeAll(() => {
-    vol.fromJSON({
-      [projectRoot + '/package.json']: packageJson,
-      [projectRoot + '/app.json']: appJson,
-    });
+    vol.fromJSON(testProject.projectTree);
   });
 
   afterAll(() => {
@@ -94,7 +54,7 @@ describe('publish details', () => {
     });
     (ApiV2.clientForUser as jest.Mock).mockReturnValue({ postAsync });
 
-    await setPublishToChannelAsync(projectRoot, setOptions);
+    await setPublishToChannelAsync(testProject.projectRoot, setOptions);
 
     expect(postAsync.mock.calls.length).toBe(1);
     expect(postAsync).toHaveBeenCalledWith('publish/set', {
@@ -122,7 +82,7 @@ describe('publish details', () => {
     (ApiV2.clientForUser as jest.Mock).mockReturnValue({ postAsync });
 
     try {
-      await rollbackPublicationFromChannelAsync(projectRoot, rollbackOptions);
+      await rollbackPublicationFromChannelAsync(testProject.projectRoot, rollbackOptions);
     } catch (e) {
       expect(e.message).toMatch(/There isn't anything published/);
     }
@@ -131,9 +91,9 @@ describe('publish details', () => {
 
     expect(postAsync).toHaveBeenCalledWith('publish/history', {
       releaseChannel: 'test-channel',
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       count: 2,
-      owner: 'test-user',
+      owner: jester.username,
       platform: 'ios',
       sdkVersion: '35.0.0',
       version: 2,
@@ -165,7 +125,7 @@ describe('publish details', () => {
     (ApiV2.clientForUser as jest.Mock).mockReturnValue({ postAsync });
 
     try {
-      await rollbackPublicationFromChannelAsync(projectRoot, rollbackOptions);
+      await rollbackPublicationFromChannelAsync(testProject.projectRoot, rollbackOptions);
     } catch (e) {
       expect(e.message).toMatch(/There is only 1 publication/);
     }
@@ -174,9 +134,9 @@ describe('publish details', () => {
 
     expect(postAsync).toHaveBeenCalledWith('publish/history', {
       releaseChannel: 'test-channel',
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       count: 2,
-      owner: 'test-user',
+      owner: jester.username,
       platform: 'ios',
       sdkVersion: '35.0.0',
       version: 2,
@@ -214,25 +174,25 @@ describe('publish details', () => {
     });
     (ApiV2.clientForUser as jest.Mock).mockReturnValue({ postAsync });
 
-    await rollbackPublicationFromChannelAsync(projectRoot, rollbackOptions);
+    await rollbackPublicationFromChannelAsync(testProject.projectRoot, rollbackOptions);
 
     expect(postAsync.mock.calls.length).toBe(3);
     expect(postAsync).toHaveBeenCalledWith('publish/history', {
       releaseChannel: 'test-channel',
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       count: 2,
-      owner: 'test-user',
+      owner: jester.username,
       platform: 'ios',
       sdkVersion: '35.0.0',
       version: 2,
     });
     expect(postAsync).toHaveBeenCalledWith('publish/details', {
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       publishId: 'test-publication-uuid-1',
-      owner: 'test-user',
+      owner: jester.username,
     });
     expect(postAsync).toHaveBeenCalledWith('publish/set', {
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       publishId: 'test-publication-uuid-1',
       releaseChannel: 'test-channel',
     });
@@ -268,44 +228,44 @@ describe('publish details', () => {
     });
     (ApiV2.clientForUser as jest.Mock).mockReturnValue({ postAsync });
 
-    await rollbackPublicationFromChannelAsync(projectRoot, rollbackOptions);
+    await rollbackPublicationFromChannelAsync(testProject.projectRoot, rollbackOptions);
 
     expect(postAsync.mock.calls.length).toBe(6);
     expect(postAsync).toHaveBeenCalledWith('publish/history', {
       releaseChannel: 'test-channel',
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       count: 2,
-      owner: 'test-user',
+      owner: jester.username,
       platform: 'ios',
       sdkVersion: '35.0.0',
       version: 2,
     });
     expect(postAsync).toHaveBeenCalledWith('publish/history', {
       releaseChannel: 'test-channel',
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       count: 2,
-      owner: 'test-user',
+      owner: jester.username,
       platform: 'android',
       sdkVersion: '35.0.0',
       version: 2,
     });
     expect(postAsync).toHaveBeenCalledWith('publish/details', {
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       publishId: 'test-publication-uuid-ios-1',
-      owner: 'test-user',
+      owner: jester.username,
     });
     expect(postAsync).toHaveBeenCalledWith('publish/details', {
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       publishId: 'test-publication-uuid-android-1',
-      owner: 'test-user',
+      owner: jester.username,
     });
     expect(postAsync).toHaveBeenCalledWith('publish/set', {
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       publishId: 'test-publication-uuid-ios-1',
       releaseChannel: 'test-channel',
     });
     expect(postAsync).toHaveBeenCalledWith('publish/set', {
-      slug: 'testing-123',
+      slug: testProject.appJSON.expo.slug,
       publishId: 'test-publication-uuid-android-1',
       releaseChannel: 'test-channel',
     });

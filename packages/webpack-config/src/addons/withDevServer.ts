@@ -86,7 +86,7 @@ export function isDevConfig(input: AnyConfiguration): input is DevConfiguration 
   return input && input.mode === 'development';
 }
 
-type SelectiveEnv = Pick<Environment, 'mode' | 'locations' | 'projectRoot' | 'https'>;
+type SelectiveEnv = Pick<Environment, 'mode' | 'locations' | 'projectRoot' | 'https' | 'platform'>;
 
 type DevServerOptions = {
   allowedHost?: string;
@@ -124,7 +124,18 @@ export function createDevServer(
   { allowedHost, proxy }: DevServerOptions = {}
 ): WebpackDevServerConfiguration {
   const { https = false } = env;
-  const locations = env.locations || getPaths(env.projectRoot);
+  const locations = env.locations || getPaths(env.projectRoot, env);
+  const isNative = ['ios', 'android'].includes(env.platform);
+
+  // Because native React runtimes uses .bundle we must make
+  // the .bundle extension be served as javascript.
+  const mimeTypes: any = isNative
+    ? {
+        typeMap: { 'application/javascript': ['bundle'] },
+        force: true,
+      }
+    : undefined;
+
   // https://github.com/facebook/create-react-app/blob/master/packages/react-scripts/config/webpackDevServer.config.js
   return {
     // Enable gzip compression of generated files.
@@ -173,7 +184,17 @@ export function createDevServer(
     public: allowedHost,
     proxy,
 
+    // TODO(Bacon):  we can disable this on native to lower the complexity.
+    // Without disabling this on native, you get the error `Can't find variable self`.
+    inline: !isNative,
+
+    mimeTypes,
+
     before(app, server) {
+      // Everything we add here is for web support
+      if (isNative) {
+        return;
+      }
       // if (fs.existsSync(paths.proxySetup)) {
       //   // This registers user provided middleware for proxy reasons
       //   require(paths.proxySetup)(app);

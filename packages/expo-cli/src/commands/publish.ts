@@ -139,7 +139,7 @@ export async function action(projectDir: string, options: Options = {}) {
     log.warn(
       'We noticed that you have not built a standalone app with this SDK version and release channel before. ' +
         'Remember that OTA updates will only work for builds with matching SDK versions and release channels. ' +
-        'Read more here: https://docs.expo.io/versions/latest/workflow/publishing/#limitations'
+        'Read more here: https://docs.expo.io/workflow/publishing/#limitations'
     );
   }
 
@@ -225,14 +225,14 @@ function getExampleManifestUrl(url: string, sdkVersion: string | undefined): str
   }
 }
 
-export default function(program: Command) {
+export default function (program: Command) {
   program
     .command('publish [project-dir]')
     .alias('p')
     .description('Publishes your project to exp.host')
-    .option('-q, --quiet', 'Suppress verbose output from the React Native packager.')
+    .option('-q, --quiet', 'Suppress verbose output from the Metro bundler.')
     .option('-s, --send-to [dest]', 'A phone number or email address to send a link to')
-    .option('-c, --clear', 'Clear the React Native packager cache')
+    .option('-c, --clear', 'Clear the Metro bundler cache')
     .option(
       '-t, --target [env]',
       'Target environment for which this publish is intended. Options are `managed` or `bare`.'
