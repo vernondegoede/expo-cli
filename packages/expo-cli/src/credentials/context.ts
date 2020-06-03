@@ -2,7 +2,7 @@ import { ExpoConfig, getConfig } from '@expo/config';
 import { ApiV2, Doctor, User, UserManager } from '@expo/xdl';
 
 import { AppleCtx, authenticate } from '../appleApi';
-import { IosApi } from './api';
+import { AndroidApi, IosApi } from './api';
 import log from '../log';
 
 export interface IView {
@@ -24,6 +24,7 @@ export class Context {
   _manifest?: ExpoConfig;
   _apiClient?: ApiV2;
   _iosApiClient?: IosApi;
+  _androidApiClient?: AndroidApi;
   _appleCtx?: AppleCtx;
 
   get user(): User {
@@ -40,6 +41,9 @@ export class Context {
   }
   get api(): ApiV2 {
     return this._apiClient as ApiV2;
+  }
+  get android(): AndroidApi {
+    return this._androidApiClient as AndroidApi;
   }
   get ios(): IosApi {
     return this._iosApiClient as IosApi;
@@ -88,6 +92,7 @@ export class Context {
       this._manifest = exp;
       this._hasProjectContext = true;
       this._iosApiClient = new IosApi(this.user).withProjectContext(this);
+      this._androidApiClient = new AndroidApi(this.user, this);
       this.logOwnerAndProject();
     } else {
       /* This manager does not need to work in project context */

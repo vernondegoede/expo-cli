@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 
 import { AndroidCredentials } from '@expo/xdl';
 import invariant from 'invariant';
+import { runCredentialsManager } from '../../credentials/route';
 import { DownloadKeystore } from '../../credentials/views/AndroidCredentials';
 import { Context } from '../../credentials';
 
@@ -32,9 +33,11 @@ export async function fetchAndroidKeystoreAsync(projectDir: string): Promise<voi
   const backupKeystoreOutputPath = path.resolve(projectDir, keystoreFilename);
 
   invariant(ctx.manifest.slug, 'app.json slug field must be set');
-  const view = new DownloadKeystore(ctx.manifest.slug as string);
-  await view.fetch(ctx);
-  await view.save(ctx, backupKeystoreOutputPath, true);
+  const view = new DownloadKeystore(ctx.manifest.slug, {
+    outputPath: backupKeystoreOutputPath,
+    shouldLog: true,
+  });
+  await runCredentialsManager(ctx, view);
 }
 
 export async function fetchAndroidHashesAsync(projectDir: string): Promise<void> {
@@ -43,28 +46,26 @@ export async function fetchAndroidHashesAsync(projectDir: string): Promise<void>
   const outputPath = path.resolve(projectDir, `${ctx.manifest.slug}.tmp.jks`);
   try {
     invariant(ctx.manifest.slug, 'app.json slug field must be set');
-    const view = new DownloadKeystore(ctx.manifest.slug as string);
-    await view.fetch(ctx);
-    await view.save(ctx, outputPath);
-
-    await AndroidCredentials.logKeystoreHashes({
-      keystorePath: outputPath,
-      // @ts-ignore keystorePassword can not be undefined
-      keystorePassword: view.credentials?.keystorePassword,
-      // @ts-ignore keyAlias can not be undefined
-      keyAlias: view.credentials?.keyAlias,
+    const view = new DownloadKeystore(ctx.manifest.slug, {
+      shouldLog: false,
+      outputPath,
     });
-    log(
-      `\nNote: if you are using Google Play signing, this app will be signed with a different key after publishing to the store, and you'll need to use the hashes displayed in the Google Play console.`
-    );
-  } finally {
-    try {
-      fs.unlink(outputPath);
-    } catch (err) {
-      if (err.code !== 'ENOENT') {
-        log.error(err);
-      }
+    await runCredentialsManager(ctx, view);
+    const keystore = view.keystore;
+
+    if (keystore) {
+      await AndroidCredentials.logKeystoreHashes({
+        keystorePath: outputPath,
+        keystorePassword: keystore.keystorePassword,
+        keyAlias: keystore.keyAlias,
+        keyPassword: keystore.keyPassword,
+      });
+      log(
+        `\nNote: if you are using Google Play signing, this app will be signed with a different key after publishing to the store, and you'll need to use the hashes displayed in the Google Play console.`
+      );
     }
+  } finally {
+    await fs.remove(outputPath);
   }
 }
 
@@ -80,28 +81,25 @@ export async function fetchAndroidUploadCertAsync(projectDir: string): Promise<v
 
   try {
     invariant(ctx.manifest.slug, 'app.json slug field must be set');
-    const view = new DownloadKeystore(ctx.manifest.slug as string);
-    await view.fetch(ctx);
-    await view.save(ctx, keystorePath);
+    const view = new DownloadKeystore(ctx.manifest.slug, {
+      shouldLog: false,
+      outputPath: keystorePath,
+    });
+    await runCredentialsManager(ctx, view);
+    const keystore = view.keystore;
 
-    log(`Writing upload key to ${uploadKeyPath}`);
-    await AndroidCredentials.exportCertBase64(
-      {
-        keystorePath,
-        // @ts-ignore keystorePassword can not be undefined
-        keystorePassword: view.credentials?.keystorePassword,
-        // @ts-ignore keyAlias can not be undefined
-        keyAlias: view.credentials?.keyAlias,
-      },
-      uploadKeyPath
-    );
-  } finally {
-    try {
-      await fs.unlink(keystorePath);
-    } catch (err) {
-      if (err.code !== 'ENOENT') {
-        log.error(err);
-      }
+    if (keystore) {
+      log(`Writing upload key to ${uploadKeyPath}`);
+      await AndroidCredentials.exportCertBase64(
+        {
+          keystorePath,
+          keystorePassword: keystore.keystorePassword,
+          keyAlias: keystore.keyAlias,
+        },
+        uploadKeyPath
+      );
     }
+  } finally {
+    await fs.remove(keystorePath);
   }
 }

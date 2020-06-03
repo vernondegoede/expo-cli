@@ -1,4 +1,4 @@
-import { ApiV2, User } from '@expo/xdl';
+import { AndroidCredentials, ApiV2, User } from '@expo/xdl';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
@@ -379,5 +379,37 @@ export class IosApi {
         credentials: {},
       });
     }
+  }
+}
+
+export class AndroidApi {
+  api: ApiV2;
+  username: string;
+
+  constructor(user: User) {
+    this.api = ApiV2.clientForUser(user);
+    this.username = user.username;
+  }
+
+  withProjectContext(ctx: Context): AndroidApi {
+    invariant(ctx.hasProjectContext, 'Project context required');
+    this.username = ctx.manifest.owner ?? this.username;
+    return this;
+  }
+
+  async fetchKeystore(experienceName: string): Promise<AndroidCredentials.Keystore> {
+    const credentials = await this.api.getAsync(`credentials/android/${experienceName}`);
+    return credentials && credentials.keystore;
+  }
+
+  async updateKeystore(
+    experienceName: string,
+    keystore: AndroidCredentials.Keystore
+  ): Promise<void> {
+    await this.api.putAsync(`credentials/android/keystore/@${experienceName}`, { keystore });
+  }
+
+  async removeKeystore(experienceName: string): Promise<void> {
+    await this.api.deleteAsync(`credentials/android/${experienceName}`);
   }
 }

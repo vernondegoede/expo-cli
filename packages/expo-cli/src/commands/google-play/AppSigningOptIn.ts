@@ -6,6 +6,7 @@ import { AndroidCredentials, Credentials } from '@expo/xdl';
 import { ExpoConfig } from '@expo/config';
 import invariant from 'invariant';
 import { Context } from '../../credentials';
+import { runCredentialsManager } from '../../credentials/route';
 import { DownloadKeystore } from '../../credentials/views/AndroidCredentials';
 
 import log from '../../log';
@@ -34,17 +35,20 @@ export default class AppSigningOptInProcess {
     invariant(ctx.manifest.slug, 'app.json slug field must be set');
     await this.init(ctx.manifest.slug as string);
 
-    const view = new DownloadKeystore(ctx.manifest.slug as string);
-    await view.fetch(ctx);
-    await view.save(ctx, this.signKeystore, true);
+    const view = new DownloadKeystore(ctx.manifest.slug, {
+      shouldLog: false,
+      outputPath: this.signKeystore,
+    });
+    await runCredentialsManager(ctx, view);
+    const keystore = view.keystore;
+    if (!keystore) {
+      return;
+    }
 
     this.signKeystoreCredentials = {
-      // @ts-ignore possibly undefined
-      keystorePassword: view.credentials?.keystorePassword,
-      // @ts-ignore possibly undefined
-      keyAlias: view.credentials?.keyAlias,
-      // @ts-ignore possibly undefined
-      keyPassword: view.credentials?.keyPassword,
+      keystorePassword: keystore.keystorePassword,
+      keyAlias: keystore.keyAlias,
+      keyPassword: keystore.keyPassword,
     };
 
     try {

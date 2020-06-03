@@ -10,7 +10,9 @@ import { AndroidCredentials, FcmCredentials, keystoreSchema } from '../credentia
 import { displayAndroidAppCredentials } from '../actions/list';
 import { askForUserProvided } from '../actions/promptForCredentials';
 
-export class ExperienceView implements IView {
+type Keystore = Credentials.Keystore;
+
+class ExperienceView implements IView {
   experience: string;
   experienceName?: string;
   keystore: Credentials.Keystore | null = null;
@@ -92,58 +94,7 @@ export class ExperienceView implements IView {
   }
 }
 
-export class UpdateKeystore implements IView {
-  experience: string;
-
-  constructor(experience: string) {
-    this.experience = experience;
-  }
-
-  async open(ctx: Context): Promise<IView | null> {
-    const keystore = await this.provideOrGenerate(ctx);
-    await ctx.api.putAsync(
-      `credentials/android/keystore/@${ctx.user.username}/${this.experience}`,
-      { keystore }
-    );
-    log(chalk.green('Updated Keystore successfully'));
-    return null;
-  }
-
-  async provideOrGenerate(ctx: Context): Promise<Credentials.Keystore> {
-    const providedKeystore = await askForUserProvided(keystoreSchema);
-    if (providedKeystore) {
-      return providedKeystore;
-    }
-
-    const tmpKeystoreName = `${this.experience}_tmp.jks`;
-    try {
-      if (await fs.pathExists(tmpKeystoreName)) {
-        await fs.unlink(tmpKeystoreName);
-      }
-      const keystoreData = await Credentials.generateUploadKeystore(
-        tmpKeystoreName,
-        '---------------', // TODO: add android package (it's not required)
-        `@${ctx.user.username}/${this.experience}`
-      );
-
-      return {
-        ...keystoreData,
-        keystore: await fs.readFile(tmpKeystoreName, 'base64'),
-      };
-    } catch (error) {
-      log.warn(
-        "If you don't provide your own Android keystore, it will be generated on our servers during the next build"
-      );
-      throw error;
-    } finally {
-      if (await fs.pathExists(tmpKeystoreName)) {
-        await fs.unlink(tmpKeystoreName);
-      }
-    }
-  }
-}
-
-export class UpdateFcmKey implements IView {
+class UpdateFcmKey implements IView {
   experience: string;
 
   constructor(experience: string) {
@@ -168,57 +119,4 @@ export class UpdateFcmKey implements IView {
   }
 }
 
-export class DownloadKeystore implements IView {
-  experience: string;
-  credentials: Credentials.Keystore | null;
-
-  constructor(experience: string, credentials: Credentials.Keystore | null = null) {
-    this.credentials = credentials;
-    this.experience = experience;
-  }
-
-  async open(ctx: Context): Promise<IView | null> {
-    const keystoreName = `${this.experience}.bak.jks`;
-    const { confirm } = await prompt({
-      type: 'confirm',
-      name: 'confirm',
-      message: 'Do you want to display the Android Keystore credentials?',
-    });
-    log(chalk.green(`Saving Keystore to ${keystoreName}`));
-    await this.save(ctx, keystoreName, confirm);
-    return null;
-  }
-
-  async fetch(ctx: Context): Promise<void> {
-    const credentials = await ApiV2.clientForUser(ctx.user).getAsync(
-      `credentials/android/@${ctx.manifest.owner || ctx.user.username}/${ctx.manifest.slug}`
-    );
-    if (credentials && credentials.keystore) {
-      this.credentials = credentials.keystore;
-    }
-  }
-
-  async save(ctx: Context, keystorePath: string, shouldLog: boolean = false): Promise<void> {
-    if (await fs.pathExists(keystorePath)) {
-      await fs.unlink(keystorePath);
-    }
-    const { keystore, keystorePassword, keyAlias, keyPassword }: any = this.credentials || {};
-    if (!keystore || !keystorePassword || !keyAlias || !keyPassword) {
-      log.warn('There is no valid Keystore defined for this app');
-      return;
-    }
-
-    const storeBuf = Buffer.from(keystore, 'base64');
-    await fs.writeFile(keystorePath, storeBuf);
-
-    if (shouldLog) {
-      log(`Keystore credentials
-  Keystore password: ${chalk.bold(keystorePassword)}
-  Key alias:         ${chalk.bold(keyAlias)}
-  Key password:      ${chalk.bold(keyPassword)}
-
-  Path to Keystore:  ${keystorePath}
-      `);
-    }
-  }
-}
+export { ExperienceView, UpdateFcmKey };
